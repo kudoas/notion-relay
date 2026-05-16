@@ -7,6 +7,10 @@ on:
       - develop
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   create-pr:
     runs-on: ubuntu-latest
@@ -46,28 +50,30 @@ jobs:
         
     - name: Create Pull Request
       if: steps.check-pr.outputs.exists == '0'
-      uses: peter-evans/create-pull-request@v8
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ steps.branch.outputs.name }}
-        base: main
-        title: "feat: ${{ steps.branch.outputs.name }}"
-        body: |
-          ## Summary
-          自動作成されたPull Requestです。
+      run: |
+        cat > /tmp/pr-body.md <<'EOF'
+        ## Summary
+        自動作成されたPull Requestです。
 
-          ## Changes
-          - ブランチ `${{ steps.branch.outputs.name }}` の変更内容をmainにマージするためのPRです
-          
-          ## Test Results
-          ✅ Type checking passed
-          ✅ All tests passed
-          
-          ## Checklist
-          - [x] Tests pass
-          - [x] Code follows project conventions
-          - [ ] Manual testing completed (if applicable)
-          
-          🤖 このPRは自動作成されました
-        draft: false
-        delete-branch: false
+        ## Changes
+        - ブランチ `${{ steps.branch.outputs.name }}` の変更内容をmainにマージするためのPRです
+
+        ## Test Results
+        ✅ Type checking passed
+        ✅ All tests passed
+
+        ## Checklist
+        - [x] Tests pass
+        - [x] Code follows project conventions
+        - [ ] Manual testing completed (if applicable)
+
+        🤖 このPRは自動作成されました
+        EOF
+
+        gh pr create \
+          --base main \
+          --head "${{ steps.branch.outputs.name }}" \
+          --title "feat: ${{ steps.branch.outputs.name }}" \
+          --body-file /tmp/pr-body.md
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
